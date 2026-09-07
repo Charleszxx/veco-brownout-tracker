@@ -1,0 +1,40 @@
+name: Auto Scrape Interruption Data
+
+on:
+  schedule:
+    # Runs every day at 12:00 AM UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows you to run it manually from the GitHub Actions tab
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Required so the action can commit changes back to the repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # If you use Node/Cheerio/Puppeteer instead of Python, replace the steps above with npm install/node script execution
+
+      - name: Run scraper script
+        run: |
+          python scraper.py  # Replace with your actual script filename (e.g., node scrape.js)
+
+      - name: Commit and push changes if data updated
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add interruptions.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-update interruption data [skip ci]" && git push)
